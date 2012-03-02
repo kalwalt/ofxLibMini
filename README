@@ -1,0 +1,3 @@
+This is not even an addon for the moment but contains some examples to start working with libMini and Openframework 007. For information on libMini goes to: http://stereofx.org/terrain.html
+libMiniExample is a simple example of integration with ministub.h
+libMiniStubExample instead is an attempt to load a file .pmg to create a terrain map. (not sure it still works! I have seg fault!)
