@@ -1,4 +1,7 @@
 #include "ofxLibMini.h"
+#define VIEWER_WINWIDTH 1024
+#define VIEWER_WINHEIGHT 512
+#define VIEWER_FPS 25.0f
 
 ofxLibMini::ofxLibMini()
 {
@@ -11,6 +14,8 @@ ofxLibMini::~ofxLibMini()
 }
  miniview *viewer = new miniview();
 
+// the camera object
+static minicam *cam=NULL;
 
 // the viewing parameters
 static miniscene::MINISCENE_PARAMS *params=NULL;
@@ -21,11 +26,139 @@ static miniearth::MINIEARTH_PARAMS *eparams=NULL;
 // the terrain parameters
 static miniterrain::MINITERRAIN_PARAMS *tparams=NULL;
 
+// eye point deltas
+static double dez,aez;
 
+// viewing angle deltas
+static double turn,incline;
 
-   float dim=5.0f; // cell dimension
-   float scale=1.0f; // vertical scaling
+// gliding speed
+static double speed,topspeed;
 
+// gliding parameters
+static double minspeed=VIEWER_MINSPEED,maxspeed=VIEWER_MAXSPEED,speedinc=0.1,accel=0.1,gravity=0.0,hover=VIEWER_HOVER;
+
+// wakeup flag
+static BOOLINT wakeup=TRUE;
+
+// command line switches
+static int sw_stereo=0;
+static int sw_anaglyph=0;
+static int sw_full=0;
+static int sw_multi=0;
+static int sw_reset=0;
+static int sw_autos3tc=0;
+static int sw_bricks=0;
+static int sw_mpass=0;
+
+// initialize the view point
+void initview(minicoord e,double a,double p,double dh=0.0)
+   {
+   //initwindow(winwidth,winheight);
+
+   cam->set_eye(e,a,p);
+
+   cam->move_down(-dh);
+   cam->move_above(hover);
+
+   viewer->initeyepoint(cam->get_eye());
+
+   dez=aez=0.0;
+   turn=incline=0.0;
+   speed=topspeed=0.0;
+   }
+
+// the terrain parameters
+static // load settings
+void loadsettings()
+   {
+   minilayer *ref;
+   char *savname;
+
+   FILE *file;
+
+   miniv3f e;
+   int type;
+
+   float a,p;
+
+   miniscene::MINISCENE_PARAMS prms;
+   miniearth::MINIEARTH_PARAMS eprms;
+   miniterrain::MINITERRAIN_PARAMS tprms;
+
+   int flag;
+
+   initview(viewer->getinitial(),0.0,-VIEWER_FOVY/3,VIEWER_UPLIFT);
+
+   ref=viewer->getearth()->getreference();
+   if (ref!=NULL) savname=ref->getcache()->getfile(VIEWER_SAVFILE);
+   else savname=strdup(VIEWER_SAVFILE);
+
+   if (savname!=NULL)
+      {
+      viewer->get(prms);
+      viewer->getearth()->get(eprms);
+      viewer->getearth()->getterrain()->get(tprms);
+
+      if ((file=fopen(savname,"rb"))==NULL)
+         {
+         free(savname);
+         return;
+         }
+
+      free(savname);
+
+      // load essential parameters:
+
+      if (fscanf(file,"ex=%f\n",&e.x)!=1) ERRORMSG();
+      if (fscanf(file,"ey=%f\n",&e.y)!=1) ERRORMSG();
+      if (fscanf(file,"ez=%f\n",&e.z)!=1) ERRORMSG();
+
+      if (fscanf(file,"type=%d\n",&type)!=1) ERRORMSG();
+
+      if (fscanf(file,"angle=%f\n",&a)!=1) ERRORMSG();
+      if (fscanf(file,"pitch=%f\n",&p)!=1) ERRORMSG();
+
+      if (fscanf(file,"farp=%f\n",&prms.farp)!=1) ERRORMSG();
+      if (fscanf(file,"relres=%f\n",&tprms.relres1)!=1) ERRORMSG();
+      if (fscanf(file,"relrange=%f\n",&tprms.relrange1)!=1) ERRORMSG();
+
+      if (fscanf(file,"fovy=%f\n",&prms.fovy)!=1) ERRORMSG();
+
+      if (fscanf(file,"sealevel=%g\n",&tprms.sealevel)!=1) ERRORMSG();
+      if (tprms.sealevel<-MAXFLOAT/2) tprms.sealevel=-MAXFLOAT;
+
+      // load optional parameters:
+
+      if (fscanf(file,"usefog=%d\n",&flag)!=1) ERRORMSG();
+      eprms.usefog=flag;
+
+      if (fscanf(file,"usecontours=%d\n",&flag)!=1) ERRORMSG();
+      eprms.usecontours=flag;
+
+      if (fscanf(file,"usebathymap=%d\n",&flag)!=1) ERRORMSG();
+      eprms.usebathymap=flag;
+
+      if (fscanf(file,"useskydome=%d\n",&flag)!=1) ERRORMSG();
+      eprms.useskydome=flag;
+
+      if (fscanf(file,"usewaypoints=%d\n",&flag)!=1) ERRORMSG();
+      eprms.usewaypoints=flag;
+
+      if (fscanf(file,"usebricks=%d\n",&flag)!=1) ERRORMSG();
+      eprms.usebricks=flag;
+
+      if (fscanf(file,"fogdensity=%f\n",&eprms.fogdensity)!=1) ERRORMSG();
+
+      fclose(file);
+
+      viewer->getearth()->getterrain()->set(tprms);
+      viewer->getearth()->set(eprms);
+      viewer->set(prms);
+
+      initview(minicoord(miniv4d(e),(minicoord::MINICOORD)type),a,p);
+      }
+   }
 
 
 
@@ -40,7 +173,13 @@ static miniterrain::MINITERRAIN_PARAMS *tparams=NULL;
 
    float cellaspect=1.0f; // cell aspect ratio
    float cx=0.0f,cy=0.0f,cz=0.0f; // grid center
-// initialize the viewing parameters
+    // initialize the viewing parameters
+    minicoord eye(miniv3d(ex,ey,ez)); // eye point in ECEF
+    miniv3d dir(dx,dy,dz); // viewing direction
+    miniv3d up(ux,uy,uz); // up vector
+
+
+
 void initparams()
    {
    miniscene::MINISCENE_PARAMS prms;
@@ -110,16 +249,11 @@ void initparams()
    tprms.bathystart=VIEWER_BATHYSTART;
    tprms.bathyend=VIEWER_BATHYEND;
 
-   tprms.bathymap=VIEWER_BATHYMAP;
    tprms.bathywidth=VIEWER_BATHYWIDTH;
    tprms.bathyheight=2;
    tprms.bathycomps=4;
 
-   tprms.nprbathystart=VIEWER_NPRBATHYSTART;
-   tprms.nprbathyend=VIEWER_NPRBATHYEND;
 
-   tprms.nprbathymap=VIEWER_NPRBATHYMAP;
-   tprms.nprbathywidth=VIEWER_NPRBATHYWIDTH;
    tprms.nprbathyheight=2;
    tprms.nprbathycomps=4;
 
@@ -141,7 +275,7 @@ void initparams()
 void ofxLibMini::display(){
 
     BOOLINT stat;
-
+    float aspect=1.0f;
    static int numidle=0;
 
    stat=viewer->getearth()->checkpending();
@@ -164,17 +298,12 @@ void ofxLibMini::display(){
 
     glutSwapBuffers();
    }
-/*
-    minicoord eye(miniv3d(ex,ey,ez)); // eye point in ECEF
-    miniv3d dir(dx,dy,dz); // viewing direction
-    miniv3d up(ux,uy,uz); // up vector
-*/
-
 
 
 void ofxLibMini::setup( char filename[MAX_STR]){
 
-    int width=512,height=512;
+    initparams();
+    int width=1024,height=512;
     viewer->getearth()->load(filename);
 
     float aspect=width/height; // aspect ratio of viewing window
@@ -184,15 +313,15 @@ void ofxLibMini::setup( char filename[MAX_STR]){
     minicoord eye(miniv3d(ex,ey,ez)); // eye point in ECEF
     miniv3d dir(dx,dy,dz); // viewing direction
     miniv3d up(ux,uy,uz); // up vector
-     //viewer->initeyepoint(cam->get_eye());
 
     viewer->initeyepoint(eye); //// prefetch data
      // initialize camera
-     viewer->propagate();
-   cam=new minicam(viewer->getearth());
+    viewer->propagate();
+    cam=new minicam(viewer->getearth());
 
-   // tell actual camera
-   viewer->set_camera(cam);
+    // tell actual camera
+    viewer->set_camera(cam);
+    loadsettings();
 
 
 

@@ -1,6 +1,5 @@
 #include "testApp.h"
-#include <stdlib.h>
-#include <stdio.h>
+
 
 
 
@@ -32,7 +31,8 @@ void testApp::setup(){
     light.setPosition(10,10,120);
     light.setDirectional();
 
-   mini.setup("Yukon.map.pgm") ;
+   //mini.setup("Yukon.map.pgm") ;
+   mini.setup("/home/walter/openframeworks007/apps/examples/libMiniViewerExample/bin/data") ;
 }
 
 //--------------------------------------------------------------
@@ -45,11 +45,11 @@ void testApp::update(){
 void testApp::draw(){
     ofBackground(0,0,0);
     glEnable(GL_DEPTH_TEST);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glShadeModel(GL_SMOOTH);
-    light.enable();
+    //light.enable();
     cam.begin();
-    ofScale(10,10,10);
+    ofScale(1000,1000,1000);
 
     mini.display();
 
