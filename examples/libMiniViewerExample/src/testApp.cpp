@@ -2,16 +2,10 @@
 
 
 
-
-
-
-float timer;
-
 //--------------------------------------------------------------
 void testApp::setup(){
 
     ofSetLogLevel(OF_LOG_VERBOSE);
-    //ofSetupScreenPerspective(512,512,OF_ORIENTATION_UNKNOWN,true,60.0,1.0,10000);
 
    GLfloat mat_diffuse[] = { 0.7, 0.5, 0.7, 1.0 };
    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
@@ -31,29 +25,28 @@ void testApp::setup(){
     light.setPosition(10,10,120);
     light.setDirectional();
 
-   //mini.setup("Yukon.map.pgm") ;
    mini.setup("/home/walter/openframeworks007/apps/examples/libMiniViewerExample/bin/data") ;
 }
 
 //--------------------------------------------------------------
 void testApp::update(){
 
-    timer = ofGetElapsedTimef()/20.0;
+
 
 }
 //--------------------------------------------------------------
 void testApp::draw(){
     ofBackground(0,0,0);
-    glEnable(GL_DEPTH_TEST);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glShadeModel(GL_SMOOTH);
+   //glEnable(GL_DEPTH_TEST);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    //glShadeModel(GL_SMOOTH);
     //light.enable();
-    cam.begin();
-    ofScale(1000,1000,1000);
+    //cam.begin();
+    ofScale(100,100,100);
 
     mini.display();
 
-    cam.end();
+   // cam.end();
 
 }
 

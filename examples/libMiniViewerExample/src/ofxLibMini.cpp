@@ -196,6 +196,7 @@ void initparams()
    prms.fovy=VIEWER_FOVY;
    prms.nearp=VIEWER_NEARP;
    prms.farp=VIEWER_FARP;
+   //prms.usewireframe=TRUE;
 
    viewer->set(prms);
 
@@ -212,7 +213,7 @@ void initparams()
    eprms.usebathymap=FALSE;
    eprms.usecontours=FALSE;
    eprms.usenprshader=FALSE;
-   eprms.useskydome=FALSE;
+   eprms.useskydome=TRUE;
    eprms.usewaypoints=TRUE;
    eprms.usebricks=(sw_bricks==0)?FALSE:TRUE;
    eprms.useearth=TRUE;
@@ -273,7 +274,7 @@ void initparams()
 
 
 void ofxLibMini::display(){
-
+/*
     BOOLINT stat;
     float aspect=1.0f;
    static int numidle=0;
@@ -293,7 +294,9 @@ void ofxLibMini::display(){
 
     viewer->clear(); // clear frame buffer
     viewer->cache(eye,dir,up,aspect); // fill vertex cache
+*/
 
+     viewer->propagate();
     viewer->render_geometry(); // render vertex cache
 
     glutSwapBuffers();
@@ -310,15 +313,17 @@ void ofxLibMini::setup( char filename[MAX_STR]){
 
     viewer->get()->nearp=10.0; // near clipping plane
     viewer->get()->farp=10000.0; // far clipping plane
+
     minicoord eye(miniv3d(ex,ey,ez)); // eye point in ECEF
     miniv3d dir(dx,dy,dz); // viewing direction
     miniv3d up(ux,uy,uz); // up vector
 
     viewer->initeyepoint(eye); //// prefetch data
      // initialize camera
-    viewer->propagate();
+   //viewer->propagate();
+   float ex=-560309.0f,ey=72234.0f,ez=30.0f;
     cam=new minicam(viewer->getearth());
-
+    cam->set_eye(ex,ey,ez,0,0);
     // tell actual camera
     viewer->set_camera(cam);
     loadsettings();

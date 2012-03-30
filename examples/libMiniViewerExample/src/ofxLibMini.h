@@ -56,10 +56,6 @@ class ofxLibMini
 
 
 
-        // minitile *terrain,*layer;
-
-
-
 };
 
 #endif // OFXLIBMINI_H

@@ -2,3 +2,5 @@ This is not even an addon for the moment but contains some examples to start wor
 libMiniExample is a simple example of integration with ministub.h
 libMiniStubExample instead is an attempt to load a file .pmg to create a terrain map. (not sure it still works! I have seg fault!)
 libMiniViewerExample should be the best way to add libMini to OF, but actuall the example not works i have an criptyc error pointing to minibrick.h at line 173!?!  >>> this error was fixed (29/03/2012) thanks to Stefan Roettger that changes minibrick. actually the example works partially. In the sense that miniview is called by OF but you can't actually navigate, we need to add basic interaction. You need Hawaii demo data to run this example.
+
+30/03/2012 i get libMIniViewerExample to run! i have to add basic camera interaction ,tested in gDEBugger texture vertices and triangles are working.
